@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Transcription</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">Audio Transcription</h1>
+        
+        <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+            <form id="uploadForm" class="space-y-4">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input type="file" 
+                           id="audioFile" 
+                           name="file" 
+                           accept=".wav,.mp3,.flac,.sph"
+                           class="hidden">
+                    <label for="audioFile" 
+                           class="cursor-pointer block">
+                        <div class="text-gray-600">
+                            <p class="mb-2">Cliquez ou glissez un fichier audio ici</p>
+                            <p class="text-sm">(WAV, MP3, FLAC, SPH)</p>
+                        </div>
+                    </label>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+                    Transcrire
+                </button>
+            </form>
+            
+            <!-- Barres de progression -->
+            <div id="progress-container" class="mt-6 hidden">
+                <div class="mb-4">
+                    <p class="text-gray-700">Chargement du fichier...</p>
+                    <progress id="uploadProgress" value="0" max="100" class="w-full"></progress>
+                </div>
+                <div class="mb-4">
+                    <p class="text-gray-700">Traitement du fichier...</p>
+                    <progress id="processProgress" value="0" max="100" class="w-full"></progress>
+                </div>
+                <div>
+                    <p class="text-gray-700">Transcription...</p>
+                    <progress id="transcriptionProgress" value="0" max="100" class="w-full"></progress>
+                </div>
+            </div>
+            
+            <!-- Résultats -->
+            <div id="result" class="mt-6 hidden">
+                <h2 class="text-xl font-semibold mb-2">Transcription:</h2>
+                <div id="transcription" class="p-4 bg-gray-50 rounded-lg"></div>
+            </div>
+            
+            <!-- Erreur -->
+            <div id="error" class="mt-6 hidden">
+                <div class="p-4 bg-red-100 text-red-700 rounded-lg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Afficher la barre de progression
+            document.getElementById('progress-container').classList.remove('hidden');
+            const uploadProgress = document.getElementById('uploadProgress');
+            const processProgress = document.getElementById('processProgress');
+            const transcriptionProgress = document.getElementById('transcriptionProgress');
+
+            // Réinitialiser les barres
+            uploadProgress.value = 0;
+            processProgress.value = 0;
+            transcriptionProgress.value = 0;
+
+            const formData = new FormData();
+            const fileInput = document.getElementById('audioFile');
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                // Étape 1 : Chargement
+                uploadProgress.value = 50;
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                uploadProgress.value = 100;
+
+                // Étape 2 : Traitement
+                processProgress.value = 50;
+                const data = await response.json();
+                processProgress.value = 100;
+
+                // Étape 3 : Transcription
+                if (response.ok) {
+                    transcriptionProgress.value = 100;
+                    document.getElementById('error').classList.add('hidden');
+                    document.getElementById('result').classList.remove('hidden');
+                    document.getElementById('transcription').textContent = data.transcription;
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                document.getElementById('result').classList.add('hidden');
+                document.getElementById('error').classList.remove('hidden');
+                document.getElementById('error').querySelector('div').textContent = error.message;
+            }
+        });
+    </script>
+</body>
+</html>
